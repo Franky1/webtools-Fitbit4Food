@@ -177,7 +177,7 @@ class Recommendation_Engine:
             recommendation_list_priority1 = recommendation_list_priority1.append(recommendation_list_priority2, ignore_index = True)
             #print(recommendation_list_priority1)
 
-            # Delete proceesed column 
+            # Delete proceesed column
             del recommendation_list_priority1['distances_1']
             del recommendation_list_priority1['features_priority_2']
             del recommendation_list_priority1['distances_2']

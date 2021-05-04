@@ -288,7 +288,7 @@ class Scorecard_generator:
             # # Standard function to find distances using CountVectorizer
             score = self.find_distances_and_cosine(extracted_data, USER_PREFERENCE_TEXT)
             #print(score)
-            # This function is used to increase your distance value with certain parameters 
+            # This function is used to increase your distance value with certain parameters
             # Becasue we never get 100 Percent match with only distance. This function will help to get 100 % matching
             normalized_score += self.get_normalized_score(score)
             #print("score from 1st method", score)
