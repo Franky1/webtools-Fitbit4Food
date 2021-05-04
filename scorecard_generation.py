@@ -16,7 +16,7 @@ import numpy as np
 
 
 # change path if required / for mac os just comment this line
-pytesseract.pytesseract.tesseract_cmd = r'/usr/local/Cellar/tesseract/4.1.1/bin/tesseract'
+pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 import streamlit as st
 import pandas as pd
 
