@@ -1,18 +1,18 @@
 ##############################################################################################
-
 # This file contain NLP based recommendation engine
-# Class Recommendation_Engine can easily separable for future use. 
+# Class Recommendation_Engine can easily separable for future use.
 # Main method is available below to play with key words
-
 ##############################################################################################
 
+import string  # to process standard python strings
+import time
+
 import nltk
-import string # to process standard python strings
 import pandas as pd
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from textblob import TextBlob
-import time
+
 
 class Recommendation_Engine:
     def __init__(self):
@@ -31,12 +31,12 @@ class Recommendation_Engine:
 
         self.init_vectorization()
 
-    # get all data into dataframe  
+    # get all data into dataframe
     def _read_csv(self, FILE_NAME):
         try:
-            
+
             self.df = pd.read_csv(FILE_NAME)
-            #print(self.df.head()) 
+            #print(self.df.head())
         except Exception as e:
             print(e)
 
@@ -51,13 +51,13 @@ class Recommendation_Engine:
         select parameter and do preprocessing on data
         '''
         try:
-            # remove null records 
+            # remove null records
             self.df['features'].dropna(inplace=True)
-            
+
             # convert to lower case
-            self.df["features"] = self.df["features"].str.lower() 
+            self.df["features"] = self.df["features"].str.lower()
             #print(self.df['features'])
-        
+
         except Exception as e:
             print(e)
 
@@ -75,11 +75,11 @@ class Recommendation_Engine:
             # print(self.df['features'])
         except Exception as e:
             print(e)
-        
-    # this function is use to check tokanization works properly 
+
+    # this function is use to check tokanization works properly
     def tokanization(self):
         #print(self.df['Product Title'])
-        try:    
+        try:
             nltk.sent_tokenize("Hello world")
         except Exception as e:
             # consume some time while first run
@@ -100,15 +100,15 @@ class Recommendation_Engine:
     def init_vectorization(self):
         try:
             #self.TfidfVec = TfidfVectorizer(ngram_range=(1, 2),stop_words = "english", lowercase = True, max_features = 500000) 
-            
+
             self.HashVec = HashingVectorizer(stop_words = "english", lowercase = True)
-        
+
         except Exception as e:
             print(e)
 
     # general function to find distances using TFIDF
     def find_tfidf_and_cosine_old(self, input_data, search_data):
-        # Create list and append user input   
+        # Create list and append user input
         input_data.append(str(search_data))
         # generate new sparse matrix of tfidf
         tfidf = self.TfidfVec.fit_transform(input_data)
@@ -118,7 +118,7 @@ class Recommendation_Engine:
 
     # NEW function to find distances using TFIDF using Gensim
     def find_tfidf_and_cosine(self, input_data, search_data):
-        # Create list and append user input   
+        # Create list and append user input
         input_data.append(str(search_data))
         t7 = time.time()
         # generate new sparse matrix of tfidf
@@ -133,9 +133,9 @@ class Recommendation_Engine:
 
         return distances[0][:-1]
 
-    # Data order manipulation 
+    # Data order manipulation
     def get_relevance_sorted_product_with_user_priority(self, recommendation_list, USER_PREFERENCE_TEXT):
-        
+
         # detect none user PREFERENCE
         if USER_PREFERENCE_TEXT == '':
             return recommendation_list
@@ -146,7 +146,7 @@ class Recommendation_Engine:
 
             # CASE 1 / Priority 1 user input + PREFERENCE
             title_data = recommendation_list['Product Title'].values.tolist()
-            
+
             # find distance with title
             recommendation_list['distances_1'] = self.find_tfidf_and_cosine(title_data, USER_PREFERENCE_TEXT)
 
@@ -161,7 +161,7 @@ class Recommendation_Engine:
 
             #Select other features for case 2
             recommendation_list_priority2['features_priority_2'] = recommendation_list_priority2['Product Title'].astype(str) + ' ' + recommendation_list_priority2['Ingredients'].astype(str) + ' ' + recommendation_list_priority2['Nutritional_information'].astype(str) + ' ' + recommendation_list_priority2['Allergen warnings'].astype(str) + ' ' + recommendation_list_priority2['Claims'].astype(str) + ' ' + recommendation_list_priority2['Endorsements'].astype(str)
-            
+
             other_data = recommendation_list_priority2['features_priority_2'].values.tolist()
 
             # find distance with other data
@@ -169,7 +169,7 @@ class Recommendation_Engine:
 
             # sort data CASE 2
             recommendation_list_priority2 = recommendation_list_priority2.sort_values(by=['distances_2'], ascending=False)
-            
+
             #print("New LEN: ", len(recommendation_list_priority2.index))
             #print(recommendation_list_priority2)
 
@@ -178,64 +178,64 @@ class Recommendation_Engine:
             #print(recommendation_list_priority1)
 
             # Delete proceesed column 
-            del recommendation_list_priority1['distances_1']	
-            del recommendation_list_priority1['features_priority_2']	
-            del recommendation_list_priority1['distances_2']	
-            	
+            del recommendation_list_priority1['distances_1']
+            del recommendation_list_priority1['features_priority_2']
+            del recommendation_list_priority1['distances_2']
+
 
         return recommendation_list_priority1
-        
+
 
     # this function will help to get recommendations
     def recommendations_from_keyword(self, KEYWORD, THRESHOLD = 2, USER_PREFERENCE_TEXT=''):
-        try: 
+        try:
             # null input condition get recommandation based on preferece
-            if KEYWORD == '': 
+            if KEYWORD == '':
                 self.recommendation_list = None
                 self.legnth_recommendation_list = 0
                 self.empty_flag = True
                 return self.recommendation_list, self.legnth_recommendation_list, self.empty_flag
-            
+
             KEYWORD = KEYWORD.lower()
             #print(KEYWORD)
-            
-            # Create list and append user input   
+
+            # Create list and append user input
             self.data_list = self.df['features'].values.tolist()
-            
+
             # CASE 3 / Priority 3 user input + PREFERENCE + anywhere
             self.df['distances'] = self.find_tfidf_and_cosine(self.data_list, KEYWORD)
 
             # filter distance using THRESHOLD
             self.recommendation_list = self.df[self.df['distances'] >= THRESHOLD/100].sort_values(by=['distances'], ascending=False)
-            
+
             self.legnth_recommendation_list = len(self.recommendation_list.index)
-            
+
             # for empty recommendation_list :: Helps to dispaly 'no product available with this key word' in site  
             if self.legnth_recommendation_list == 0:
                 self.empty_flag = True
-            else: 
+            else:
                 self.empty_flag = False
-            
+
             try:
                 # Data order manipulation with three priority
                 self.recommendation_list = self.get_relevance_sorted_product_with_user_priority(self.recommendation_list, KEYWORD +" "+ USER_PREFERENCE_TEXT)
             except Exception as e:
                 print('Error in Data order manipulation',e)
                 pass
-            
+
             # remove features and distances column from output data
             del self.recommendation_list['features']
             del self.recommendation_list['distances']
 
             #print(self.recommendation_list)
             #################################################################################
-            # Uncomment this part if you required to recommended product only in fix number 
+            # Uncomment this part if you required to recommended product only in fix number
             # n = 5
             # n_largest = self.df['distances'].nlargest(n + 1)
             # print(n_largest)
             # print(self.df['Product Title'].iloc[self.df['distances'].nlargest(n + 1)])
             #################################################################################
-        
+
         except Exception as e:
             # incase of error in script no recommendation
             self.recommendation_list = None
@@ -250,22 +250,22 @@ class Recommendation_Engine:
 if __name__ == "__main__":
     try:
         # Create folder data
-        import os 
+        import os
         if not os.path.exists('Recommendation_results'):
             os.makedirs('Recommendation_results')
-        
+
         while True :
             print("\nEnter your keyword: ")
             keyword = str(input())
 
-            # create Object of Recommendation_Engine     
+            # create Object of Recommendation_Engine
             t1 = time.time()
             recommendation_engine = Recommendation_Engine()
             t2 = time.time()
             print("Time 1: ", t2-t1)
-            # GET recommendation list form recommendations_from_keyword method 
-            
-            # Value of THRESHOLD is optional and vary between [0 to 100] 
+            # GET recommendation list form recommendations_from_keyword method
+
+            # Value of THRESHOLD is optional and vary between [0 to 100]
 
             # which is a matching threshold use for remove totaly irrelevant products(e.g high THRESHOLD -> low output)
 
@@ -273,7 +273,7 @@ if __name__ == "__main__":
 
             # empty_flag is for empty recommendation_list :: Helps to dispaly 'no product available with this key word' in site
             t3 = time.time()
-            
+
             recommendations, len_of_list, empty_flag = recommendation_engine.recommendations_from_keyword(keyword, THRESHOLD= 2, USER_PREFERENCE_TEXT= 'Nuts Chocolate')
             t4 = time.time()
             print("Time 2: ", t4-t3)
@@ -281,11 +281,11 @@ if __name__ == "__main__":
             # check full data frame
             #print(recommendations)
 
-            recommendations.to_csv( 'Recommendation_results/'+ keyword+'_results.csv') 
+            recommendations.to_csv( 'Recommendation_results/'+ keyword+'_results.csv')
             # see only title
             print(recommendations['Product Title'])
             print('Length of recommendation list : ', len_of_list)
             print('Flag represent recommendation list is empty(True) or not(False): ', empty_flag)
-    
+
     except Exception as e:
         print(e)

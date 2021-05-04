@@ -5,14 +5,15 @@
 # RUN : streamlit run streamlit_recommedation_engine.py
 ##############################################################################################
 
-import streamlit as st 
-import streamlit.components.v1 as stc
-from recommendation_engine import Recommendation_Engine
-import SessionState
 import os
 from datetime import datetime
-import numpy as np
+
 import cv2
+import streamlit as st
+import streamlit.components.v1 as stc
+
+import SessionState
+from recommendation_engine import Recommendation_Engine
 from scorecard_generation import Scorecard_generator
 
 HTML_TITLE = """
@@ -34,10 +35,10 @@ def save_image(file):
 	#if file is too large then return
 	if file.size > 209715200: # 200 MB
 		return 1
-	
+
 	folder = "public_receipt_images"
 	datetoday = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-	
+
 	# clear the folder to avoid storage overload (will use when required)
 	# for filename in os.listdir(folder):
 	# 	file_path = os.path.join(folder, filename)
@@ -60,7 +61,7 @@ def save_image(file):
 
 # GUI function for dashboard
 def recommendation_engine_gui():
-	
+
 	# initialize menu and add to visual HTML(Front End)
 	menu = ["Home","Scan receipt"]
 	choice = st.sidebar.selectbox("Options",menu)
@@ -94,7 +95,7 @@ def recommendation_engine_gui():
 	if "All" in my_preference:
 		my_preference = ["Organic", "Non GMO", "Pesticide Free", "Free Range", "Nut Free", "Dairy Free", "Palm Oil Free", "Additives Free", "Sugar Free", "Gluten Free", "Vegan", "Halal"]
 
-	# Merge preferences  
+	# Merge preferences
 	if len(my_preference) != 0 :
 		if len(user_preset) != 0:
 			my_preference = ' '.join(my_preference) + ' ' + ' '.join(my_preference_preset)
@@ -112,25 +113,25 @@ def recommendation_engine_gui():
 		# initialize sorting option and add to visual HTML(Front End)
 		sort_option = ["Relevance", "Price Low to High","Price High to Low", "Unit Price Low to High"]
 		sort_by = st.sidebar.selectbox("Sort By", sort_option)
-		
+
 		# set sub header
 		st.subheader("Search Product")
 
 		# Take user input
 		product_name = st.text_input("Enter Product name")
-		
+
 		# initialize and add search button into HTML
 		submit = st.button('Search')
 
 		# Enable mouse click or keyboard "enter / return " key to search product
 		if submit or product_name:
-			
+
 			if product_name.strip() == '':
 				if my_preference != '':
-					final_keyword = my_preference 
-				else: 
+					final_keyword = my_preference
+				else:
 					final_keyword = ''
-					
+
 			else:
 				final_keyword = product_name.lower()
 
@@ -139,7 +140,7 @@ def recommendation_engine_gui():
 			print("my_preference",my_preference)
 			recommendations, len_of_list, empty_flag = recommendation_engine.recommendations_from_keyword(final_keyword, THRESHOLD= 2, USER_PREFERENCE_TEXT= my_preference)
 
-			# Condition if user input is empty -> pass user preference  
+			# Condition if user input is empty -> pass user preference
 			if final_keyword.strip() == '':
 				TOTAL_PRODUCTS = """
 					<div style="background-color:#464e5e;padding:10px;border-radius:10px">
@@ -153,8 +154,8 @@ def recommendation_engine_gui():
 					<h3 style="color:white;text-align:center;">Results for "{product_name}":  About <b>{len_of_list}</b> products recommended </h3>
 				</div>
 					""".format(len_of_list = len_of_list, product_name = final_keyword)
-			
-			# Display 'Results for...' tag into html 
+
+			# Display 'Results for...' tag into html
 			stc.html(TOTAL_PRODUCTS, height = 100)
 
 			# Manage sorting option
@@ -169,8 +170,8 @@ def recommendation_engine_gui():
 
 			# uncomment this to see dataframe without html
 			#st.dataframe(data=recommendations)
-			
-			try: 
+
+			try:
 				# HTML + logic to display list of product
 				# Number of entries per screen
 				N = 15
@@ -203,7 +204,7 @@ def recommendation_engine_gui():
 					pass
 
 				# Get start and end indices of the next page of the dataframe
-				start_idx = session_state.page_number * N 
+				start_idx = session_state.page_number * N
 				end_idx = (1 + session_state.page_number) * N
 
 				CURRENT_PAGE = """
@@ -217,7 +218,7 @@ def recommendation_engine_gui():
 
 				# Index into the sub dataframe
 				sub_recommendations = recommendations.iloc[start_idx:end_idx]
-				
+
 				# uncomment this line to see sub list
 				#st.write(sub_recommendations)
 
@@ -228,25 +229,25 @@ def recommendation_engine_gui():
 					# create HTML product card
 					PRODUCT_CARD = '''
 					<div style="background-color:#464e5e;padding: var(--su-4);border-radius:10px;position: relative;">
-					
+
 					<span class="column" style="background-color: rgb(49, 51, 63);float: left;
 					width: 40%;height: 192px;
 					padding: 10px;position: relative; justify-content: center;">
 						<img style="color:white;text-align:right;" alt = "image"  src ='{img_link}' width="200" height="200">
-						
+
 					</span>
-					
-					
+
+
 					<span class="column" style="background-color: rgb(49, 80, 63);float: left;
 					width: 54%; padding: 10px;position: relative; height: 192px;justify-content: center; ">
 						<h2 style = "color:white;">{title}</h2>
 						<h3 style = "color:white;">$ {price}</h3>
 						<a target="_blank" href="{product_link}" style = "background-color:rgb(48, 200, 0);color:white;padding:10px; border-radius:10px"> Buy Now </a>
 					</span>
-					
+
 					</div>
 					'''.format(product_link = col1, img_link = col3, title = col2, price = col4)
-					
+
 					stc.html(PRODUCT_CARD,height=250)
 
 			except Exception as e:
@@ -267,13 +268,13 @@ def recommendation_engine_gui():
 			if if_save_image == 1:
 				st.warning("File size is too large. Try another file with lower size.")
 			elif if_save_image == 0:
-				
+
 				# display receipt
 				try:
 					# st.image(image_file, use_column_width=True)
 					image_arr = cv2.imread(path, 0)
 				except Exception as e:
-				 	st.error(f"Error {e} - wrong format of the file. Try another .jpg file.")
+					st.error(f"Error {e} - wrong format of the file. Try another .jpg file.")
 			else:
 				st.error("Unknown error")
 		else:
@@ -296,8 +297,8 @@ def recommendation_engine_gui():
 			for i in range(output_score):
 				# Update progress bar upto output score.
 				progress_bar.progress(i + 1)
-			
-			# display score 
+
+			# display score
 			SCORE_TITLE = """
 			<div style="background-color:#464e5e;padding:10px;border-radius:10px">
 			<h1 style="color:white;text-align:center;">{output_score} %</h1>

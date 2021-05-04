@@ -1,24 +1,23 @@
 ############################################################################
-
-# This file contain receipt scanning and score generation from user purchase. 
-# Class Scorecard_generation can easily separable for future use. 
+# This file contain receipt scanning and score generation from user purchase.
+# Class Scorecard_generation can easily separable for future use.
 # Main method is available below to play with receipt images
-
 ############################################################################
-import pytesseract
-import cv2
+
 import re
+
+import cv2
+import numpy as np
+import pytesseract
+from scipy.ndimage import interpolation as inter
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy.ndimage import interpolation as inter
-import numpy as np
-# from textblob import TextBlob
-
 
 # change path if required / for mac os just comment this line
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 
 class Scorecard_generator:
     def __init__(self):
@@ -28,20 +27,20 @@ class Scorecard_generator:
     # This function is use to initilize vectorization method
     def init_vectorization(self):
         try:
-            self.vectorizer = CountVectorizer(stop_words = "english", lowercase = True) 
+            self.vectorizer = CountVectorizer(stop_words = "english", lowercase = True)
 
         except Exception as e:
             print(e)
 
     # general function to find distances using CountVectorizer
     def find_distances_and_cosine(self, receipt_data, user_preference):
-        # Create list and append user input   
+        # Create list and append user input
         data_arr = [user_preference, receipt_data]
         #print(data_arr)
 
         # generate new sparse matrix using CountVectorizer
         count_matrix = self.vectorizer.fit_transform(data_arr)
-        
+
         # find distances on receipt_data using cosine similarity
         cosine_sim = cosine_similarity(count_matrix)
 
@@ -50,7 +49,7 @@ class Scorecard_generator:
         #  [0.27773186 1.        ]]
         #print(cosine_sim)
 
-        score = cosine_sim[0][1] 
+        score = cosine_sim[0][1]
 
         return score
 
@@ -63,7 +62,7 @@ class Scorecard_generator:
         #Skew Correction
         _, rotated = self.correct_skew(thresh1)
         #print(angle)
-        
+
         return rotated
 
 
@@ -99,8 +98,8 @@ class Scorecard_generator:
             if elem in mainString :
                 # Replace the string
                 mainString = mainString.replace(elem, newString)
-        
-        return  mainString 
+
+        return  mainString
 
     # Text pre processing
     def OCR_text_pre_preprocessing(self, text):
@@ -115,10 +114,10 @@ class Scorecard_generator:
 
         #convert multiple white space to single
         text = re.sub(' +', ' ', text)
-        
+
         return text
 
-    # This function is used to increase your distance value with certain parameters 
+    # This function is used to increase your distance value with certain parameters
     # Because we will never get 100% match with only distance. This function will help to get 100 % matching
     def get_normalized_score(self, distance, threshold=0.37):
         # increase score value
@@ -126,7 +125,7 @@ class Scorecard_generator:
         # set > 1 value to 1
         if linear_val > 1.0: linear_val = 1.0
 
-        # Get percentage 
+        # Get percentage
         linear_val *= 100
 
         return int(linear_val)
@@ -140,16 +139,16 @@ class Scorecard_generator:
     # 2nd method to score calculation
     # implemented here because of it's required to load data every time but using cache it can be load one time only
     # This is one time running function
-    @st.cache(suppress_st_warning=True, allow_output_mutation=True)  
+    @st.cache(suppress_st_warning=True, allow_output_mutation=True)
     def expensive_computation_load_data(self):
-        # reading csv file from url 
+        # reading csv file from url
         data = pd.read_csv("all_product_data.csv")
         print("Data Loaded")
         return data
 
     def get_product_discription_from_csv(self, data, product_name):
         try:
-            
+
             # substring to be searched
             #product_name ='Crunchy '
 
@@ -181,7 +180,7 @@ class Scorecard_generator:
                 #print(type(text_description))
 
                 #------- R & D stuff ----------#
-                
+
                 #blob = TextBlob(text_description)
                 #text_description = str(blob.correct())
                 # prints the corrected spelling
@@ -209,7 +208,7 @@ class Scorecard_generator:
         except Exception as e:
             print(e)
             text_description = ""
-            
+
 
 
         return text_description
@@ -232,12 +231,12 @@ class Scorecard_generator:
                         if re.findall(r"\d+",product):
                             # remove most common lines [Filter 2]
                             if product.find("PH:") == -1 and product.find("GST") == -1 and product.find("@") == -1 and product.find("MERCH") == -1 and product.find("www") == -1: 
-                                
+
                                 # find exact product name from product list with prices and quantity [Filter 3]
                                 product = re.split(r'(\s\d)', product)
-                                
+
                                 # search product in our csv file
-                                
+
                                 description_text += self.get_product_discription_from_csv(data, product[0])
 
 
@@ -302,7 +301,8 @@ class Scorecard_generator:
 if __name__ == "__main__":
     try:
         import sys
-        # create Object of Scorecard_generation     
+
+        # create Object of Scorecard_generation
         scorecard_obj = Scorecard_generator()
         while True :
             #print("\nEnter image path: ")
